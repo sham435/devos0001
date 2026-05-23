@@ -1,0 +1,32 @@
+{
+  "allowed_tools": [
+    "run_shell_command",
+    "read_file",
+    "write_file",
+    "edit_file",
+    "git_diff",
+    "git_log",
+    "git_blame",
+    "search_codebase",
+    "grep_search",
+    "glob_search"
+  ],
+  "blocked_paths": [
+    "secrets/",
+    ".env",
+    "*.pem",
+    "**/credentials/**"
+  ],
+  "auto_approve": [
+    "run_shell_command:pytest",
+    "run_shell_command:python -m pytest",
+    "run_shell_command:redis-cli",
+    "run_shell_command:psql",
+    "git_diff",
+    "git_log",
+    "grep_search",
+    "glob_search"
+  ],
+  "max_retries": 3,
+  "timeout_seconds": 120
+}

@@ -1,0 +1,20 @@
+{
+  "allowed_tools": [
+    "read_file",
+    "search_codebase",
+    "glob_search",
+    "grep_search",
+    "write_file"
+  ],
+  "blocked_paths": [
+    "secrets/",
+    ".env"
+  ],
+  "auto_approve": [
+    "glob_search",
+    "grep_search",
+    "search_codebase"
+  ],
+  "max_retries": 1,
+  "timeout_seconds": 60
+}

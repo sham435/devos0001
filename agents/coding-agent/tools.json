@@ -1,0 +1,27 @@
+{
+  "allowed_tools": [
+    "read_file",
+    "write_file",
+    "edit_file",
+    "run_shell_command",
+    "search_codebase",
+    "glob_search",
+    "grep_search"
+  ],
+  "blocked_paths": [
+    "secrets/",
+    ".env",
+    "*.pem"
+  ],
+  "auto_approve": [
+    "run_shell_command:pytest",
+    "run_shell_command:python -m pytest",
+    "run_shell_command:ruff",
+    "run_shell_command:black",
+    "run_shell_command:npm test",
+    "glob_search",
+    "grep_search"
+  ],
+  "max_retries": 2,
+  "timeout_seconds": 180
+}

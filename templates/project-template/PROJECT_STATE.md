@@ -20,11 +20,11 @@ Fix WS cleanup in `consumers.py:87`. Test with 100 connections.
 - `docker-compose.yml` - Redis config
 
 ## Last Work Session
-**DONE TODAY**: Wrote JWT middleware tests
-**CURRENT BUG**: Token refresh collision
-**NEXT TASK**: Add Redis lock
-**START FILE**: `backend/auth/services.py`
-**ESTIMATED TIME**: 45min
+**DONE TODAY**:
+**CURRENT BUG**:
+**NEXT TASK**:
+**START FILE**:
+**ESTIMATED TIME**:
 
 ## Estimated Completion
 MVP: 2026-06-10

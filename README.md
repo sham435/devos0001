@@ -27,7 +27,7 @@ This repo is my:
 <!-- PROJECTS_START -->
 | Project | Current Focus | Next Task | Updated |
 | --- | --- | --- | --- |
-| [devos-ui](projects/active/devos-ui) | Tabbed UI (Converter + Migration Stage) at localhost:3000 | Wire doctor pre-run hook into opencode agent hooks.yaml | 2026-05-23 |
+| [devos-ui](projects/active/devos-ui) | Tabbed UI (Converter + Migration Stage) at localhost:3000 | devos test — run pytest and auto-commit results to PROJECT_STATE.md | 2026-05-23 |
 | [my-fastapi-app](projects/active/my-fastapi-app) | Ready for deployment | `docker compose up -d` then `pytest -v` | 2026-05-23 |
 <!-- PROJECTS_END -->
 

@@ -1,8 +1,9 @@
 #!/usr/bin/env tsx
 import { execSync } from "child_process";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, accessSync, constants } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, accessSync, watchFile, constants } from "fs";
 import { join, resolve, basename } from "path";
 import { tmpdir } from "os";
+import { createInterface } from "readline";
 
 const DEVOS_HOME = process.env.DEVOS_HOME || process.cwd();
 const DEVOS_LOCAL = join(DEVOS_HOME, ".devos.local");
@@ -13,6 +14,7 @@ const colors = {
   red: "\x1b[31m",
   yellow: "\x1b[33m",
   cyan: "\x1b[36m",
+  magenta: "\x1b[35m",
   dim: "\x1b[2m",
   reset: "\x1b[0m",
 } as const;
@@ -372,6 +374,262 @@ async function runOpencode(project: string, prompt: string) {
   log("green", "\n✓ Task complete. State synced to devos-state branch.");
 }
 
+// ─── Logs ────────────────────────────────────────────────────────────────────
+async function tailLogs(project: string, follow = true) {
+  const projectPath = join(DEVOS_HOME, "projects/active", project);
+  const promptsLog = join(projectPath, "PROMPTS_USED.md");
+  const opencodeLog = join(DEVOS_LOCAL, "logs", `${project}-opencode.log`);
+
+  if (!existsSync(projectPath)) {
+    log("red", `Project not found: ${project}`);
+    process.exit(1);
+  }
+
+  log("cyan", `\n>>> DevOS Logs: ${project}\n`);
+
+  const colorLine = (l: string) => {
+    if (!l.trim()) return;
+    if (l.includes("opencode")) console.log(`  ${colors.magenta}${l}${colors.reset}`);
+    else if (l.includes("coding-agent")) console.log(`  ${colors.cyan}${l}${colors.reset}`);
+    else if (l.includes("migration")) console.log(`  ${colors.yellow}${l}${colors.reset}`);
+    else console.log(`  ${colors.dim}${l}${colors.reset}`);
+  };
+
+  // Show last 50 lines of PROMPTS_USED.md
+  if (existsSync(promptsLog)) {
+    log("yellow", "─── PROMPTS_USED.md ───");
+    const prompts = readFileSync(promptsLog, "utf-8").split("\n").slice(-50);
+    prompts.forEach(colorLine);
+  }
+
+  // Show last 50 lines of opencode log if exists
+  if (existsSync(opencodeLog)) {
+    log("yellow", "\n─── opencode.log ───");
+    const logs = readFileSync(opencodeLog, "utf-8").split("\n").slice(-50);
+    logs.forEach(l => { if (l.trim()) console.log(`  ${l}`); });
+  }
+
+  if (!follow) return;
+
+  log("dim", "\nFollowing logs... Ctrl+C to exit\n");
+
+  // Watch both files using built-in fs.watchFile
+  if (existsSync(promptsLog)) {
+    watchFile(promptsLog, { interval: 1000 }, () => {
+      const lines = readFileSync(promptsLog, "utf-8").split("\n").slice(-1);
+      lines.forEach(l => {
+        if (l.trim()) {
+          const ts = new Date().toLocaleTimeString();
+          if (l.includes("opencode")) console.log(`${colors.magenta}[${ts}] ${l}${colors.reset}`);
+          else if (l.includes("coding-agent")) console.log(`${colors.cyan}[${ts}] ${l}${colors.reset}`);
+          else console.log(`${colors.dim}[${ts}] ${l}${colors.reset}`);
+        }
+      });
+    });
+  }
+
+  if (existsSync(opencodeLog)) {
+    watchFile(opencodeLog, { interval: 1000 }, () => {
+      const lines = readFileSync(opencodeLog, "utf-8").split("\n").slice(-1);
+      lines.forEach(l => { if (l.trim()) console.log(`  ${l}`); });
+    });
+  }
+
+  process.stdin.resume();
+  await new Promise(() => {}); // keep alive
+}
+
+// ─── Diff ────────────────────────────────────────────────────────────────────
+async function showDiff(project: string, lastN = 1) {
+  const projectPath = join(DEVOS_HOME, "projects/active", project);
+
+  if (!existsSync(projectPath)) {
+    log("red", `Project not found: ${project}`);
+    process.exit(1);
+  }
+
+  log("cyan", `\n>>> DevOS Diff: ${project}\n`);
+
+  const stdout = execSync(
+    `git log --grep=opencode --max-count=${lastN} --format="%H %s"`,
+    { cwd: projectPath, encoding: "utf-8", timeout: 5000 }
+  ).trim();
+
+  if (!stdout) {
+    log("yellow", "No opencode commits found");
+    return;
+  }
+
+  const commits = stdout.split("\n");
+
+  for (const commitLine of commits) {
+    const hash = commitLine.split(" ")[0];
+    const msg = commitLine.substring(hash.length + 1);
+
+    log("yellow", `─── ${msg} ───`);
+    log("dim", `  Commit: ${hash.slice(0, 7)}`);
+
+    const files = execSync(
+      `git diff-tree --no-commit-id --name-status -r ${hash}`,
+      { cwd: projectPath, encoding: "utf-8", timeout: 5000 }
+    ).trim();
+
+    files.split("\n").filter(Boolean).forEach((line: string) => {
+      const [status, file] = line.split("\t");
+      if (status === "A") console.log(`  ${colors.green}+${colors.reset} ${file}`);
+      else if (status === "M") console.log(`  ${colors.yellow}~${colors.reset} ${file}`);
+      else console.log(`  ${colors.red}-${colors.reset} ${file}`);
+    });
+
+    console.log("");
+    const diff = execSync(`git show --format="" ${hash}`, { cwd: projectPath, encoding: "utf-8", timeout: 10000 });
+    console.log(`  ${diff.split("\n").join("\n  ")}`);
+    console.log("");
+  }
+}
+
+// ─── Rollback ────────────────────────────────────────────────────────────────
+function confirmRollback(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    rl.question(`${colors.yellow}Proceed with rollback? [y/N] ${colors.reset}`, (answer: string) => {
+      rl.close();
+      resolve(answer.trim().toLowerCase() === "y" || answer.trim().toLowerCase() === "yes");
+    });
+  });
+}
+
+async function rollback(project: string, count = 1) {
+  const projectPath = join(DEVOS_HOME, "projects/active", project);
+
+  if (!existsSync(projectPath)) {
+    log("red", `Project not found: ${project}`);
+    process.exit(1);
+  }
+
+  log("cyan", `\n>>> DevOS Rollback: ${project}\n`);
+
+  const stdout = execSync(
+    `git log --grep=opencode --max-count=${count} --format="%H %s"`,
+    { cwd: projectPath, encoding: "utf-8", timeout: 5000 }
+  ).trim();
+
+  if (!stdout) {
+    log("yellow", "No opencode commits found to rollback");
+    return;
+  }
+
+  const commits = stdout.split("\n");
+  const lastHash = commits[0].split(" ")[0];
+
+  log("yellow", `Rolling back ${count} opencode commit(s):`);
+  for (const c of commits) {
+    const h = c.split(" ")[0];
+    const m = c.substring(h.length + 1);
+    console.log(`  ${colors.red}-${colors.reset} ${h.slice(0, 7)} ${m}`);
+  }
+
+  const diffStat = execSync(`git show --stat --format="" ${lastHash}`, { cwd: projectPath, encoding: "utf-8", timeout: 5000 });
+  console.log("");
+  diffStat.split("\n").forEach(l => { if (l.trim()) console.log(`  ${l}`); });
+
+  if (!(await confirmRollback())) {
+    log("dim", "Rollback cancelled");
+    return;
+  }
+
+  execSync(`git reset --hard ${lastHash}~${count}`, { cwd: projectPath, stdio: "pipe", timeout: 10000 });
+
+  // Update PROJECT_STATE.md
+  const stateFile = join(projectPath, "PROJECT_STATE.md");
+  if (existsSync(stateFile)) {
+    let state = readFileSync(stateFile, "utf-8");
+    for (const c of commits) {
+      const taskMatch = c.match(/task(\d+)/i);
+      if (taskMatch) {
+        const re = new RegExp(`- \\[x\\] Task ${taskMatch[1]}:`);
+        state = state.replace(re, `- [ ] Task ${taskMatch[1]}:`);
+      }
+    }
+    writeFileSync(stateFile, state);
+    execSync("git add PROJECT_STATE.md", { cwd: projectPath, stdio: "pipe" });
+    const taskNums = commits.map(c => c.match(/task(\d+)/i)?.[1]).filter(Boolean).join(", ");
+    execSync(`git commit -m "revert: rollback opencode task(s) ${taskNums || "unknown"}"`, { cwd: projectPath, stdio: "pipe" });
+  }
+
+  log("green", `\n✓ Rolled back to ${lastHash.slice(0, 7)}~${count}`);
+  log("green", "✓ PROJECT_STATE.md updated — tasks marked incomplete");
+}
+
+// ─── Retry ───────────────────────────────────────────────────────────────────
+async function retry(project: string, newPrompt?: string) {
+  const projectPath = join(DEVOS_HOME, "projects/active", project);
+
+  if (!existsSync(projectPath)) {
+    log("red", `Project not found: ${project}`);
+    process.exit(1);
+  }
+
+  log("cyan", `\n>>> DevOS Retry: ${project}\n`);
+
+  const stdout = execSync(
+    `git log --grep=opencode --max-count=1 --format="%H %s"`,
+    { cwd: projectPath, encoding: "utf-8", timeout: 5000 }
+  ).trim();
+
+  if (!stdout) {
+    log("red", "No opencode commits found to retry");
+    process.exit(1);
+  }
+
+  const commitHash = stdout.split(" ")[0];
+  const commitMsg = stdout.substring(commitHash.length + 1);
+  const taskMatch = commitMsg.match(/task(\d+)/i);
+  const taskNum = taskMatch?.[1] || "unknown";
+
+  log("yellow", `Last run: ${commitMsg}`);
+  log("dim", `  Commit: ${commitHash.slice(0, 7)}`);
+
+  // Extract original prompt from PROMPTS_USED.md
+  const promptsFile = join(projectPath, "PROMPTS_USED.md");
+  let originalPrompt = "";
+  if (existsSync(promptsFile)) {
+    const prompts = readFileSync(promptsFile, "utf-8").split("\n").reverse();
+    const lastEntry = prompts.find(l => l.includes("opencode") && l.includes(`Task ${taskNum}`));
+    if (lastEntry) {
+      const m = lastEntry.match(/"([^"]+)"/);
+      if (m) originalPrompt = m[1];
+    }
+  }
+
+  const promptToUse = newPrompt || originalPrompt;
+  if (!promptToUse) {
+    log("red", "Could not determine prompt to retry. Provide one:");
+    log("dim", `  devos retry ${project} "your fixed prompt here"`);
+    process.exit(1);
+  }
+
+  log("yellow", `\n  Original: "${originalPrompt.slice(0, 80)}${originalPrompt.length > 80 ? "..." : ""}"`);
+  log("yellow", `  Retry:    "${promptToUse.slice(0, 80)}${promptToUse.length > 80 ? "..." : ""}"`);
+
+  // Rollback silently (no confirmation for retry)
+  log("yellow", "\n[1/2] Rolling back...");
+  execSync(`git reset --hard ${commitHash}~1`, { cwd: projectPath, stdio: "pipe", timeout: 10000 });
+
+  const stateFile = join(projectPath, "PROJECT_STATE.md");
+  if (existsSync(stateFile) && taskNum !== "unknown") {
+    let state = readFileSync(stateFile, "utf-8");
+    state = state.replace(new RegExp(`- \\[x\\] Task ${taskNum}:`), `- [ ] Task ${taskNum}:`);
+    writeFileSync(stateFile, state);
+  }
+  log("green", "  ✓ Rolled back to previous state");
+
+  // Re-run opencode
+  log("yellow", "\n[2/2] Re-running opencode with fixed prompt...");
+  await runOpencode(project, promptToUse);
+  log("green", `\n✓ Retry complete. Task ${taskNum} re-executed.`);
+}
+
 // ─── Help ────────────────────────────────────────────────────────────────────
 function help() {
   console.log(`Usage: devos <command> [options]
@@ -382,14 +640,28 @@ Commands:
                        --name <name>  Override project name
   opencode <project>  Run opencode with full DevOS pipeline (doctor → context → opencode → sync)
     <prompt>           Instruction for opencode
+  logs <project>      Tail PROMPTS_USED.md + opencode log in real-time
+                       --no-follow    One-time dump without watching
+  diff <project>      Show git diff of last opencode commit(s)
+                       --last N       Show last N opencode commits (default 1)
+  rollback <project>  Revert last opencode commit — asks confirmation
+                       --steps N      Revert N commits (default 1)
+  retry <project>     Rollback + re-run opencode with same or new prompt
+    ["prompt"]         Optional: new prompt for the retry
 
 Examples:
   devos doctor
   devos doctor my-fastapi-app
-  devos migrate /path/to/legacy-project
-  devos migrate ../old-app --name my-new-app
-  devos opencode my-fastapi-app "Add pagination to /items endpoint"
-  devos opencode my-fastapi-app "Fix the bug in app/api/v1/items.py from BUGS.md"
+  devos migrate /path/to/legacy-project --name my-new-app
+  devos opencode my-fastapi-app "Add pagination to /items"
+  devos logs my-fastapi-app
+  devos logs my-fastapi-app --no-follow
+  devos diff my-fastapi-app
+  devos diff my-fastapi-app --last 3
+  devos rollback my-fastapi-app
+  devos rollback my-fastapi-app --steps 2
+  devos retry my-fastapi-app
+  devos retry my-fastapi-app "Use cursor-based pagination instead"
 `);
 }
 
@@ -405,6 +677,24 @@ switch (cmd) {
   case "opencode":
     if (!args[0] || !args[1]) { log("red", "Usage: devos opencode <project> \"<prompt>\""); process.exit(1); }
     runOpencode(args[0], args.slice(1).join(" ")).catch(e => { log("red", `\n✗ opencode failed: ${e.message}`); process.exit(1); });
+    break;
+  case "logs":
+    if (!args[0]) { log("red", "Usage: devos logs <project> [--no-follow]"); process.exit(1); }
+    tailLogs(args[0], !args.includes("--no-follow")).catch(e => { log("red", `\n✗ logs failed: ${e.message}`); process.exit(1); });
+    break;
+  case "diff":
+    if (!args[0]) { log("red", "Usage: devos diff <project> [--last N]"); process.exit(1); }
+    const lastN = args.includes("--last") ? parseInt(args[args.indexOf("--last") + 1]) || 1 : 1;
+    showDiff(args[0], lastN).catch(e => { log("red", `\n✗ diff failed: ${e.message}`); process.exit(1); });
+    break;
+  case "rollback":
+    if (!args[0]) { log("red", "Usage: devos rollback <project> [--steps N]"); process.exit(1); }
+    const steps = args.includes("--steps") ? parseInt(args[args.indexOf("--steps") + 1]) || 1 : 1;
+    rollback(args[0], steps).catch(e => { log("red", `\n✗ rollback failed: ${e.message}`); process.exit(1); });
+    break;
+  case "retry":
+    if (!args[0]) { log("red", "Usage: devos retry <project> [\"new prompt\"]"); process.exit(1); }
+    retry(args[0], args.slice(1).join(" ") || undefined).catch(e => { log("red", `\n✗ retry failed: ${e.message}`); process.exit(1); });
     break;
   default:
     help();

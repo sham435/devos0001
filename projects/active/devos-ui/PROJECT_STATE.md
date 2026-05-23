@@ -9,10 +9,21 @@ Updated: 2026-05-23
 - [x] Migration Stage — drag-drop legacy projects, auto-generates DevOS artifacts
 - [x] devos doctor — CLI health check for opencode, secrets, git, device configs
 - [x] devos migrate — CLI command to convert any legacy folder to DevOS structure
-- [x] devos.ts — self-contained CLI with doctor + migrate commands (zero npm deps)
+- [x] devos opencode — full pipeline: doctor → context → opencode → sync
+- [x] devos logs — real-time tail of PROMPTS_USED.md + opencode log
+- [x] devos diff — git diff of last opencode commit(s) with color
+- [x] devos rollback — revert last opencode commit with y/N confirmation
+- [x] devos retry — rollback + re-run opencode with fixed prompt
+- [x] devos.ts — self-contained CLI with 7 commands (zero external deps)
 
 ## Working On
 Tabbed UI (Converter + Migration Stage) at localhost:3000
+
+## Blockers
+None
+
+## Next Immediate Task
+devos test — run pytest and auto-commit results to PROJECT_STATE.md
 - `/api/devos/migrate` — accepts zip/tar.gz/repo URL, heuristic stack detection, artifact generation
 - `scripts/devos.ts` — CLI entry point for doctor and migrate
 - `scripts/devos-doctor.ts` — standalone health check (used by devos.ts doctor)

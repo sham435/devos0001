@@ -25,7 +25,9 @@ This repo is my:
 
 ## Active Projects
 <!-- PROJECTS_START -->
-_No active projects. Run `./scripts/create-project.sh name`_
+| Project | Current Focus | Next Task | Updated |
+| --- | --- | --- | --- |
+| [my-fastapi-app](projects/active/my-fastapi-app) | Ready to deploy. Run `uvicorn app.main:app --reload` after `alembic upgrade head | `docker compose up -d db redis && alembic upgrade head && uvicorn app.main:app - | 2026-05-23 |
 <!-- PROJECTS_END -->
 
 ### Recent Lessons Learned

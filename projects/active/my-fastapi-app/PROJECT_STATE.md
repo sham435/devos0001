@@ -8,9 +8,10 @@ Updated: 2026-05-23
 - [x] TASKS.md — 9 tasks defined
 - [x] **Task 1**: Core setup — pyproject.toml, config, main.py, Docker, compose, logging
 - [x] **Task 2**: DB layer — session.py, base.py, User/Item models, Alembic
+- [x] **Task 3**: Security — JWT create/decode, bcrypt 12, get_db/get_current_user deps
 
 ## Working On
-Task 3: Security — JWT, password hashing, dependencies
+Task 4: Schemas — Pydantic v2 auth/user/item models
 
 ## Blockers
 None

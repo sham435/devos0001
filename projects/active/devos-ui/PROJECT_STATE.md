@@ -6,28 +6,32 @@ Updated: 2026-05-23
 - [x] API routes: create-project, generate-architecture, execute-task, list-projects, parse-mega-prompt
 - [x] PROJECT_STATE.md auto-updates after each task execution
 - [x] PROMPTS_USED.md auto-logs every agent prompt
+- [x] Migration Stage — drag-drop legacy projects, auto-generates DevOS artifacts
+- [x] devos doctor — CLI health check for opencode, secrets, git, device configs
+- [x] devos migrate — CLI command to convert any legacy folder to DevOS structure
+- [x] devos.ts — self-contained CLI with doctor + migrate commands (zero npm deps)
 
 ## Working On
-UI runs at localhost:3000 — converts mega-prompts to DevOS workflow live
-- Next.js 14.2, SWC fixed, TS strict mode, @/ path alias
-- 5 API routes wired to DevOS scripts
-- All template files staged alongside API routes
+Tabbed UI (Converter + Migration Stage) at localhost:3000
+- `/api/devos/migrate` — accepts zip/tar.gz/repo URL, heuristic stack detection, artifact generation
+- `scripts/devos.ts` — CLI entry point for doctor and migrate
+- `scripts/devos-doctor.ts` — standalone health check (used by devos.ts doctor)
 
 ## Blockers
 None
 
 ## Next Immediate Task
-Start next vertical or fix a real-world bug
+Wire doctor pre-run hook into opencode agent hooks.yaml
 
 ## Important Files
-- `app/page.tsx` — Entry point
-- `components/devos-converter.tsx` — Full UI component (400+ lines)
-- `app/api/parse-mega-prompt/route.ts` — Extracts stack/features/tasks from raw prompt
-- `app/api/create-project/route.ts` — Calls create-project.sh
-- `app/api/execute-task/route.ts` — Runs agent, updates STATE.md, logs prompt
+- `app/page.tsx` — Entry point with tabbed layout (Converter | Migration)
+- `components/devos-converter.tsx` — Mega-prompt → DevOS workflow converter
+- `components/migration-stage.tsx` — Drag-drop legacy project ingestion
+- `app/api/devos/migrate/route.ts` — Stack detection, artifact generation, snippet extraction
+- `scripts/devos.ts` — CLI: doctor + migrate commands
+- `scripts/devos-doctor.ts` — Standalone health check script
 
 ## Last Work Session
-**DONE TODAY**: Built DevOS Converter UI — closes loop between "paste mega-prompt" and "DevOS workflow"
-**CURRENT BUG**: None
-**NEXT TASK**: `npm install && npm run dev`
-**START FILE**: `components/devos-converter.tsx`
+**DONE TODAY**: Migration Stage + devos doctor + devos migrate CLI + tabbed UI
+**NEXT TASK**: Wire doctor as opencode pre-run hook
+**START FILE**: `scripts/devos.ts`

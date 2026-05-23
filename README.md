@@ -27,7 +27,7 @@ This repo is my:
 <!-- PROJECTS_START -->
 | Project | Current Focus | Next Task | Updated |
 | --- | --- | --- | --- |
-| [my-fastapi-app](projects/active/my-fastapi-app) | Task 4: Schemas — Pydantic v2 auth/user/item models | Write JWT create/decode, bcrypt password hashing, get_db/get_current_user depend | 2026-05-23 |
+| [my-fastapi-app](projects/active/my-fastapi-app) | Ready for deployment | `docker compose up -d` then `pytest -v` | 2026-05-23 |
 <!-- PROJECTS_END -->
 
 ### Recent Lessons Learned

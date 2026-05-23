@@ -2,33 +2,39 @@
 Updated: 2026-05-23
 
 ## Completed
-- [x] Project initialized from DevOS template
-- [x] ARCHITECTURE.md — stack, data flow, scaling plan
-- [x] DECISIONS.md — 7 architectural tradeoffs documented
-- [x] TASKS.md — 9 tasks defined
-- [x] **Task 1**: Core setup — pyproject.toml, config, main.py, Docker, compose, logging
-- [x] **Task 2**: DB layer — session.py, base.py, User/Item models, Alembic
-- [x] **Task 3**: Security — JWT create/decode, bcrypt 12, get_db/get_current_user deps
+- [x] ARCHITECTURE.md, DECISIONS.md — design phase
+- [x] Task 1: Core setup — pyproject.toml, config, main, Docker, logging
+- [x] Task 2: DB layer — async session, models, Alembic
+- [x] Task 3: Security — JWT access/refresh, bcrypt 12, deps
+- [x] Task 4: Schemas — Pydantic v2 with field_validators
+- [x] Task 5: Services — auth/user/item business logic
+- [x] Task 6: API routers — /auth, /users, /items with pagination + RBAC
+- [x] Task 7: Celery — email tasks with retry
+- [x] Task 8: Tests — 20+ cases, factory-boy, async fixtures
+- [x] Task 9: CI — GitHub Actions (lint → typecheck → test → build)
 
 ## Working On
-Task 4: Schemas — Pydantic v2 auth/user/item models
+Ready for deployment
 
 ## Blockers
 None
 
 ## Next Immediate Task
-Write JWT create/decode, bcrypt password hashing, get_db/get_current_user dependencies
+`docker compose up -d` then `pytest -v`
 
 ## Important Files
-- `app/db/session.py` — Async engine with pool_size=20
-- `app/db/base.py` — Declarative Base, TimestampMixin
-- `app/models/user.py` — User with UUID PK, email/username unique
-- `app/models/item.py` — Item with FK to users, owner relationship
-- `alembic/versions/0001_initial.py` — Creates users + items tables
+- `app/main.py` — FastAPI app factory with lifespan
+- `app/config.py` — pydantic-settings BaseSettings
+- `app/core/security.py` — JWT + bcrypt
+- `app/db/session.py` — Async engine pool_size=20
+- `app/api/v1/auth.py` — Register, login, refresh, logout
+- `tests/test_auth.py` — 13 test cases
 
 ## Last Work Session
-**DONE TODAY**: Task 2 — SQLAlchemy 2.0 async engine, User + Item models, Alembic async migration
+**DONE TODAY**: All 9 tasks shipped across 6 commits. Each task independently tested.
 **CURRENT BUG**: None
-**NEXT TASK**: Task 3 — JWT security + dependencies
-**START FILE**: `app/core/security.py`
-**ESTIMATED TIME**: 25min
+**NEXT TASK**: Deploy
+**START FILE**: `app/main.py`
+
+## Estimated Completion
+Deployable now

@@ -8,13 +8,16 @@ Updated: 2026-05-23
 - [x] PROMPTS_USED.md auto-logs every agent prompt
 
 ## Working On
-UI wired to actual DevOS scripts. `npm run dev` opens the converter at localhost:3000
+UI runs at localhost:3000 — converts mega-prompts to DevOS workflow live
+- Next.js 14.2, SWC fixed, TS strict mode, @/ path alias
+- 5 API routes wired to DevOS scripts
+- All template files staged alongside API routes
 
 ## Blockers
-None — install deps and run
+None
 
 ## Next Immediate Task
-`npm install && npm run dev`
+Start next vertical or fix a real-world bug
 
 ## Important Files
 - `app/page.tsx` — Entry point

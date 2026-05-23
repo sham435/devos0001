@@ -27,7 +27,7 @@ This repo is my:
 <!-- PROJECTS_START -->
 | Project | Current Focus | Next Task | Updated |
 | --- | --- | --- | --- |
-| [devos-ui](projects/active/devos-ui) | UI wired to actual DevOS scripts. `npm run dev` opens the converter at localhost | `npm install && npm run dev` | 2026-05-23 |
+| [devos-ui](projects/active/devos-ui) | UI runs at localhost:3000 — converts mega-prompts to DevOS workflow live | Start next vertical or fix a real-world bug | 2026-05-23 |
 | [my-fastapi-app](projects/active/my-fastapi-app) | Ready for deployment | `docker compose up -d` then `pytest -v` | 2026-05-23 |
 <!-- PROJECTS_END -->
 

@@ -1,0 +1,10 @@
+{
+  "providers": {
+    "openrouter": { "api_key": "${OPENROUTER_API_KEY}" },
+    "anthropic": { "api_key": "${ANTHROPIC_API_KEY}" }
+  },
+  "model": "anthropic/claude-sonnet-4-5",
+  "project_root": "${PROJECT_PATH}",
+  "devos_integration": true,
+  "zero_dependency": true
+}

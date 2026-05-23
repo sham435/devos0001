@@ -1,3 +1,7 @@
+# opencode
+
+First-class DevOS executor with health check enforcement. Runs pre-task hooks (doctor) before every invocation and post-task hooks (sync) after. Isolated config in .devos/.opencode, binary in .devos.local/bin/opencode. See agents/opencode/agent.yaml for hook definitions.
+
 # coding-agent
 
 Full-stack engineer specialized in writing production code. Follows existing patterns, mimics project conventions, and never adds comments unless asked. Writes tests alongside implementation.

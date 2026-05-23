@@ -4,6 +4,5 @@ node_modules/
 .DS_Store
 .devos.local/
 .devos/secrets.env
-.opencode/
 .next/
 *.tsbuildinfo

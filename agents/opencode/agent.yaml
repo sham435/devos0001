@@ -1,0 +1,63 @@
+# opencode agent — DevOS first-class executor
+# All paths are relative to DEVOS_HOME. No hardcoded user paths.
+name: opencode
+type: executor
+description: "Full-codebase AI editor with file I/O — runs inside DevOS with health checks"
+
+provider: local_binary
+binary: ${DEVOS_BIN}/opencode
+config_template: ${DEVOS_HOME}/agents/opencode/opencode.json
+config_dir: ${DEVOS_HOME}/.opencode
+
+workspace_isolation: true
+working_dir: ${PROJECT_PATH}
+
+env:
+  OPENCODE_CONFIG_DIR: ${DEVOS_HOME}/.opencode
+  OPENCODE_PROJECT_ROOT: ${PROJECT_PATH}
+  OPENROUTER_API_KEY: ${secret:OPENROUTER_API_KEY}
+  ANTHROPIC_API_KEY: ${secret:ANTHROPIC_API_KEY}
+
+context:
+  - PROJECT_STATE.md
+  - ARCHITECTURE.md
+  - DECISIONS.md
+  - snippets/${STACK}/**
+  - memory/lessons/${STACK}*
+
+hooks:
+  pre_run:
+    - name: health_check
+      script: .devos/hooks/pre-task.sh ${PROJECT_NAME} ${PROJECT_PATH}
+      required: true
+      description: "Runs devos doctor — aborts if binary missing, secrets failed, or git broken"
+    - name: load_context
+      script: scripts/context/bundle.sh /tmp/devos-context.md
+      env:
+        BUNDLE_FILES: "PROJECT_STATE.md,ARCHITECTURE.md,DECISIONS.md"
+      description: "Bundles DevOS artifacts into context for opencode system prompt"
+
+  post_run:
+    - name: verify_state
+      script: |
+        if ! git -C ${PROJECT_PATH} diff HEAD -- PROJECT_STATE.md | grep -q "+"; then
+          echo "WARNING: opencode did not update PROJECT_STATE.md"
+        fi
+      optional: true
+    - name: state_sync
+      script: .devos/hooks/post-task.sh ${PROJECT_NAME} ${PROJECT_PATH}
+      async: true
+      description: "Pushes PROJECT_STATE.md to devos-state branch"
+
+prompt_template: |
+  You are opencode running inside DevOS.
+  Project: {{project.name}}
+  Current task: {{task.title}}
+  
+  DevOS Rules:
+  1. Read PROJECT_STATE.md first — this is your source of truth
+  2. Use snippets/{{project.stack}}/ for established patterns
+  3. Write exactly ONE task worth of code per session
+  4. After writing files: run pytest, update PROJECT_STATE.md, append to PROMPTS_USED.md
+  5. Commit with message: feat(task{{task.id}}): {{task.title}}
+  6. Never write all files at once. One task = one commit.

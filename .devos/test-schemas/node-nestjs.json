@@ -1,0 +1,19 @@
+{
+  "language": "typescript",
+  "frameworks": ["nestjs"],
+  "detect": {
+    "files": ["package.json", "nest-cli.json"],
+    "imports": ["@nestjs"]
+  },
+  "test_command": "npx jest --verbose 2>&1 | tee /tmp/devos-test.txt; true",
+  "install_deps": "npm install 2>/dev/null || true",
+  "parse": {
+    "type": "jest",
+    "file": "/tmp/devos-test.txt",
+    "pass_pattern": "✓|PASS",
+    "fail_pattern": "✗|FAIL",
+    "result_pattern": "Tests:\\s+(\\d+) passed,\\s+(\\d+) total",
+    "summary_pattern": "Tests:\\s+(\\d+) failed,\\s+(\\d+) passed,\\s+(\\d+) total"
+  },
+  "project_state_template": "## Last Test Run\nUpdated: {{timestamp}}\nResult: {{passed}}/{{total}} passed"
+}

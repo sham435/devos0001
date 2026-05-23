@@ -1,0 +1,19 @@
+{
+  "language": "go",
+  "frameworks": ["gin", "fiber", "echo", "chi"],
+  "detect": {
+    "files": ["go.mod"],
+    "imports": ["gin", "fiber", "echo", "chi"]
+  },
+  "test_command": "go test ./... -v -count=1 2>&1 | tee /tmp/devos-test.txt; true",
+  "install_deps": "",
+  "parse": {
+    "type": "gotest",
+    "file": "/tmp/devos-test.txt",
+    "pass_pattern": "^--- PASS:",
+    "fail_pattern": "^--- FAIL:",
+    "ok_pattern": "^ok\\s+",
+    "fail_package_pattern": "^FAIL\\s+"
+  },
+  "project_state_template": "## Last Test Run\nUpdated: {{timestamp}}\nResult: {{passed}}/{{total}} passed"
+}

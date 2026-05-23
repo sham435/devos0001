@@ -1,0 +1,19 @@
+{
+  "language": "typescript",
+  "frameworks": ["express", "node"],
+  "detect": {
+    "files": ["package.json"],
+    "imports": ["express"]
+  },
+  "test_command": "npm test 2>&1 | tee /tmp/devos-test.txt; true",
+  "install_deps": "npm install 2>/dev/null || true",
+  "parse": {
+    "type": "npm",
+    "file": "/tmp/devos-test.txt",
+    "pass_pattern": "passing",
+    "fail_pattern": "failing",
+    "result_pattern": "(\\d+) passing.*\\((\\d+)\\)",
+    "fail_detail_pattern": "^\\s+\\d+\\)"
+  },
+  "project_state_template": "## Last Test Run\nUpdated: {{timestamp}}\nResult: {{passed}}/{{total}} passed"
+}

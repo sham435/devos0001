@@ -1,0 +1,19 @@
+{
+  "language": "python",
+  "frameworks": ["django"],
+  "detect": {
+    "files": ["manage.py", "requirements.txt", "pyproject.toml"],
+    "imports": ["django"]
+  },
+  "test_command": "python -m pytest -v --tb=short --json-report --json-report-file=/tmp/devos-test.json 2>&1 || true",
+  "install_deps": "pip install pytest pytest-json-report pytest-django 2>/dev/null || true",
+  "parse": {
+    "type": "json",
+    "file": "/tmp/devos-test.json",
+    "passed_path": "summary.passed",
+    "failed_path": "summary.failed",
+    "total_path": "summary.total",
+    "failures_path": "tests[] | select(.outcome==\"failed\") | {file: .nodeid, error: .call.longrepr}"
+  },
+  "project_state_template": "## Last Test Run\nUpdated: {{timestamp}}\nResult: {{passed}}/{{total}} passed"
+}

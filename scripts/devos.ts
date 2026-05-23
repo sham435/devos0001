@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 import { execSync } from "child_process";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, accessSync, watchFile, constants } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, accessSync, watchFile, readdirSync, constants } from "fs";
 import { join, resolve, basename } from "path";
 import { tmpdir } from "os";
 import { createInterface } from "readline";
@@ -630,6 +630,202 @@ async function retry(project: string, newPrompt?: string) {
   log("green", `\n✓ Retry complete. Task ${taskNum} re-executed.`);
 }
 
+// ─── Test ────────────────────────────────────────────────────────────────────
+async function runTests(project: string, autoCommit = false) {
+  const projectPath = join(DEVOS_HOME, "projects/active", project);
+  const schemasDir = join(DEVOS_HOME, ".devos/test-schemas");
+
+  if (!existsSync(projectPath)) {
+    log("red", `Project not found: ${project}`);
+    process.exit(1);
+  }
+
+  log("cyan", `\n>>> DevOS Test: ${project}\n`);
+
+  if (!existsSync(schemasDir)) {
+    log("red", "No test schemas found at .devos/test-schemas/");
+    process.exit(1);
+  }
+
+  // 1. Detect stack by scanning project files
+  const projectFiles = readdirSync(projectPath);
+  let matchedSchema: any = null;
+  let schemaFile = "";
+
+  // Check if project has dependency/keyword markers for better detection
+  const projectContent = projectFiles.filter(f => f.endsWith(".toml") || f.endsWith(".json") || f.endsWith(".cfg"))
+    .map(f => { try { return readFileSync(join(projectPath, f), "utf-8"); } catch { return ""; } })
+    .join(" ").toLowerCase();
+
+  for (const f of readdirSync(schemasDir)) {
+    if (!f.endsWith(".json")) continue;
+    const schema = JSON.parse(readFileSync(join(schemasDir, f), "utf-8"));
+    const hasFile = schema.detect.files.some((df: string) => projectFiles.includes(df));
+    const hasImport = schema.detect.imports?.some((imp: string) => projectContent.includes(imp)) ?? false;
+    if (hasFile && hasImport) {
+      matchedSchema = schema;
+      schemaFile = f;
+      break;
+    }
+  }
+
+  // Fallback: file-only match if no import match found
+  if (!matchedSchema) {
+    for (const f of readdirSync(schemasDir)) {
+      if (!f.endsWith(".json")) continue;
+      const schema = JSON.parse(readFileSync(join(schemasDir, f), "utf-8"));
+      const hasFile = schema.detect.files.some((df: string) => projectFiles.includes(df));
+      if (hasFile) {
+        matchedSchema = schema;
+        schemaFile = f;
+        break;
+      }
+    }
+  }
+
+  if (!matchedSchema) {
+    log("yellow", "No test schema matched this project.");
+    log("dim", `  Create one: .devos/test-schemas/<lang>-<framework>.json`);
+    log("dim", `  Or run: opencode .devos "Create test schema for my stack"`);
+    process.exit(1);
+  }
+
+  log("green", `  Detected: ${matchedSchema.language}/${matchedSchema.frameworks[0]}`);
+  log("yellow", `  Schema: ${schemaFile}`);
+
+  // 2. Install test deps if needed
+  if (matchedSchema.install_deps) {
+    log("yellow", "  Installing test dependencies...");
+    try {
+      execSync(matchedSchema.install_deps, { cwd: projectPath, stdio: "pipe", timeout: 120000 });
+      log("green", "  ✓ Dependencies installed");
+    } catch { log("yellow", "  ⚠ Dep install had issues, continuing"); }
+  }
+
+  // 3. Run tests
+  log("yellow", "  Running tests...");
+  let rawOutput = "";
+  try {
+    rawOutput = execSync(matchedSchema.test_command, {
+      cwd: projectPath, encoding: "utf-8", timeout: 300000, stdio: "pipe",
+    });
+  } catch (e: any) {
+    rawOutput = e.stdout || e.message || "";
+  }
+
+  // 4. Parse results based on schema type
+  let passed = 0, failed = 0, total = 0;
+  const failures: string[] = [];
+  const lines = rawOutput.split("\n");
+
+  if (matchedSchema.parse.type === "json") {
+    const resultFile = matchedSchema.parse.file;
+    if (existsSync(resultFile)) {
+      try {
+        const data = JSON.parse(readFileSync(resultFile, "utf-8"));
+        const getVal = (obj: any, path: string) => path.split(".").reduce((o, k) => o?.[k], obj);
+        passed = getVal(data, matchedSchema.parse.passed_path) || 0;
+        failed = getVal(data, matchedSchema.parse.failed_path) || 0;
+        total = getVal(data, matchedSchema.parse.total_path) || 0;
+        if (data.tests) {
+          for (const t of data.tests) {
+            if (t.outcome === "failed") {
+              failures.push(`${t.nodeid}: ${t.call?.longrepr?.split("\n")[0] || "Unknown"}`);
+            }
+          }
+        }
+      } catch {}
+    }
+  } else if (matchedSchema.parse.type === "gotest") {
+    for (const l of lines) {
+      if (l.startsWith("--- PASS:")) passed++;
+      else if (l.startsWith("--- FAIL:")) { failed++; failures.push(l); }
+    }
+    total = passed + failed;
+  } else if (matchedSchema.parse.type === "cargo") {
+    for (const l of lines) {
+      if (l.match(/^test\s+.*\s+\.\.\.\s+ok$/)) passed++;
+      else if (l.match(/^test\s+.*\s+\.\.\.\s+FAILED$/)) { failed++; failures.push(l); }
+    }
+    const resultMatch = rawOutput.match(/test result: .*?(\d+) passed;.*?(\d+) failed/);
+    if (resultMatch) {
+      passed = parseInt(resultMatch[1]);
+      failed = parseInt(resultMatch[2]);
+      total = passed + failed;
+    }
+  } else if (matchedSchema.parse.type === "jest") {
+    const summary = rawOutput.match(/Tests:\s+(?:\d+ failed,\s+)?(\d+) passed,\s+(\d+) total/);
+    if (summary) {
+      passed = parseInt(summary[1]);
+      total = parseInt(summary[2]);
+      failed = total - passed;
+    }
+    for (const l of lines) {
+      if (l.match(/^\s+●\s/)) failures.push(l.trim());
+    }
+  } else {
+    // Generic: scan for common patterns
+    const passMatch = rawOutput.match(/(\d+)\s+passed/);
+    const failMatch = rawOutput.match(/(\d+)\s+failed/);
+    if (passMatch) passed = parseInt(passMatch[1]);
+    if (failMatch) failed = parseInt(failMatch[1]);
+    total = passed + failed;
+  }
+
+  // 5. Update PROJECT_STATE.md
+  const stateFile = join(projectPath, "PROJECT_STATE.md");
+  const timestamp = new Date().toISOString();
+  let testSection = matchedSchema.project_state_template
+    .replace("{{timestamp}}", timestamp)
+    .replace("{{passed}}", String(passed))
+    .replace("{{failed}}", String(failed))
+    .replace("{{total}}", String(total));
+
+  if (failures.length > 0) {
+    testSection += "\nFailures:\n" + failures.slice(0, 5).map(f => `  - ${f}`).join("\n");
+  } else {
+    testSection += "\nNo failures";
+  }
+
+  let stateContent = "";
+  if (existsSync(stateFile)) {
+    stateContent = readFileSync(stateFile, "utf-8");
+    if (stateContent.includes("## Last Test Run")) {
+      stateContent = stateContent.replace(/## Last Test Run[\s\S]*?(?=\n## |$)/, testSection);
+    } else {
+      stateContent += `\n\n${testSection}\n`;
+    }
+  } else {
+    stateContent = `# Current State\n\n${testSection}\n`;
+  }
+  writeFileSync(stateFile, stateContent);
+
+  // 6. Log to PROMPTS_USED.md
+  const promptsFile = join(projectPath, "PROMPTS_USED.md");
+  const promptLine = `| ${timestamp.split("T")[0]} | Test Run | devos-test | "${matchedSchema.test_command}" | ${passed}/${total} passed |\n`;
+  if (existsSync(promptsFile)) {
+    writeFileSync(promptsFile, readFileSync(promptsFile, "utf-8") + promptLine);
+  } else {
+    writeFileSync(promptsFile, `# Prompts Used\n\n| Date | Task | Agent | Prompt | Status |\n|------|------|-------|--------|--------|\n${promptLine}`);
+  }
+
+  // 7. Commit if requested
+  if (autoCommit) {
+    execSync("git add PROJECT_STATE.md PROMPTS_USED.md", { cwd: projectPath, stdio: "pipe" });
+    execSync(`git commit -m "test: ${passed}/${total} passed"`, { cwd: projectPath, stdio: "pipe" });
+  }
+
+  // 8. Report
+  if (failed === 0) {
+    log("green", `\n✓ All tests passed: ${passed}/${total}`);
+    process.exit(0);
+  } else {
+    log("red", `\n✗ Tests failed: ${passed}/${total} passed, ${failed} failed`);
+    failures.slice(0, 5).forEach(f => log("red", `  - ${f}`));
+    process.exit(1);
+  }
+}
+
 // ─── Help ────────────────────────────────────────────────────────────────────
 function help() {
   console.log(`Usage: devos <command> [options]
@@ -648,6 +844,8 @@ Commands:
                        --steps N      Revert N commits (default 1)
   retry <project>     Rollback + re-run opencode with same or new prompt
     ["prompt"]         Optional: new prompt for the retry
+  test <project>      Run test suite, parse results, update PROJECT_STATE.md
+                       --commit       Commit results to git
 
 Examples:
   devos doctor
@@ -655,13 +853,12 @@ Examples:
   devos migrate /path/to/legacy-project --name my-new-app
   devos opencode my-fastapi-app "Add pagination to /items"
   devos logs my-fastapi-app
-  devos logs my-fastapi-app --no-follow
   devos diff my-fastapi-app
   devos diff my-fastapi-app --last 3
   devos rollback my-fastapi-app
-  devos rollback my-fastapi-app --steps 2
-  devos retry my-fastapi-app
-  devos retry my-fastapi-app "Use cursor-based pagination instead"
+  devos retry my-fastapi-app "Use cursor-based pagination"
+  devos test my-fastapi-app
+  devos test my-fastapi-app --commit
 `);
 }
 
@@ -695,6 +892,10 @@ switch (cmd) {
   case "retry":
     if (!args[0]) { log("red", "Usage: devos retry <project> [\"new prompt\"]"); process.exit(1); }
     retry(args[0], args.slice(1).join(" ") || undefined).catch(e => { log("red", `\n✗ retry failed: ${e.message}`); process.exit(1); });
+    break;
+  case "test":
+    if (!args[0]) { log("red", "Usage: devos test <project> [--commit]"); process.exit(1); }
+    runTests(args[0], args.includes("--commit")).catch(e => { log("red", `\n✗ test failed: ${e.message}`); process.exit(1); });
     break;
   default:
     help();

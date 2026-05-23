@@ -1,0 +1,18 @@
+{
+  "language": "rust",
+  "frameworks": ["axum", "actix-web", "tokio"],
+  "detect": {
+    "files": ["Cargo.toml"],
+    "imports": ["axum", "actix-web", "tokio"]
+  },
+  "test_command": "cargo test 2>&1 | tee /tmp/devos-test.txt; true",
+  "install_deps": "",
+  "parse": {
+    "type": "cargo",
+    "file": "/tmp/devos-test.txt",
+    "pass_pattern": "^test\\s+.*\\s+\\.\\.\\.\\s+ok$",
+    "fail_pattern": "^test\\s+.*\\s+\\.\\.\\.\\s+FAILED$",
+    "result_pattern": "^test result: (FAILED|ok)\\.\\s+(\\d+) passed;\\s+(\\d+) failed"
+  },
+  "project_state_template": "## Last Test Run\nUpdated: {{timestamp}}\nResult: {{passed}}/{{total}} passed"
+}

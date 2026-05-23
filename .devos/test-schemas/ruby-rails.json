@@ -1,0 +1,18 @@
+{
+  "language": "ruby",
+  "frameworks": ["rails"],
+  "detect": {
+    "files": ["Gemfile", "bin/rails"],
+    "imports": ["rails", "activerecord"]
+  },
+  "test_command": "bundle exec rails test 2>&1 | tee /tmp/devos-test.txt; true",
+  "install_deps": "bundle install 2>/dev/null || true",
+  "parse": {
+    "type": "rails",
+    "file": "/tmp/devos-test.txt",
+    "pass_pattern": "^\\d+ tests",
+    "fail_pattern": "Failure:",
+    "result_pattern": "(\\d+) tests,\\s+(\\d+) assertions,\\s+(\\d+) failures"
+  },
+  "project_state_template": "## Last Test Run\nUpdated: {{timestamp}}\nResult: {{passed}}/{{total}} passed"
+}

@@ -24,12 +24,9 @@ This repo is my:
 | **Notion** | Project management. Status dashboard only, not knowledge |
 
 ## Active Projects
-```dataview
-TABLE Working On as "Current Focus", Blockers, file.mtime as "Updated"
-FROM "projects/active"
-WHERE file.name = "PROJECT_STATE"
-SORT file.mtime DESC
-```
+<!-- PROJECTS_START -->
+_No active projects. Run `./scripts/create-project.sh name`_
+<!-- PROJECTS_END -->
 
 ### Recent Lessons Learned
 ```dataview

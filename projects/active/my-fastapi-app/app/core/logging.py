@@ -21,15 +21,10 @@ def setup_logging() -> None:
         cache_logger_on_first_use=True,
     )
 
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
-
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
     handler = logging.StreamHandler()
     handler.setFormatter(structlog.stdlib.ProcessorFormatter(
         processor=structlog.processors.JSONRenderer(),
     ))
-    root_logger.addHandler(handler)
-
-
-def get_logger(name: str) -> structlog.BoundLogger:
-    return structlog.get_logger(name)
+    root.addHandler(handler)

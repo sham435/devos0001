@@ -27,7 +27,7 @@ This repo is my:
 <!-- PROJECTS_START -->
 | Project | Current Focus | Next Task | Updated |
 | --- | --- | --- | --- |
-| [my-fastapi-app](projects/active/my-fastapi-app) | Task 1: Core setup — pyproject.toml, config.py, main.py, Docker | Write pyproject.toml with exact versions, app/config.py with pydantic-settings,  | 2026-05-23 |
+| [my-fastapi-app](projects/active/my-fastapi-app) | Task 2: DB layer — session.py, base.py, User/Item models, Alembic | Write SQLAlchemy async engine + session, declarative Base with TimestampMixin, U | 2026-05-23 |
 <!-- PROJECTS_END -->
 
 ### Recent Lessons Learned

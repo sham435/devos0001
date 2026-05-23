@@ -1,34 +1,27 @@
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
 
 from app.config import settings
-from app.api.router import api_router
-from app.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
-from app.db.session import engine, AsyncSessionLocal
-from app.core.cache import redis_client
+from app.db.session import engine
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
-    app.state.redis = await redis_client()
     async with engine.begin() as conn:
         from app.db.base import Base
         await conn.run_sync(Base.metadata.create_all)
     yield
-    await app.state.redis.close()
     await engine.dispose()
 
 
 def create_app() -> FastAPI:
     app = FastAPI(
         title="FastAPI Starter API",
-        description="Production-ready FastAPI REST API",
         version="0.1.0",
         lifespan=lifespan,
         docs_url="/docs",
@@ -43,11 +36,19 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    app.state.limiter = None
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-    app.add_middleware(SlowAPIMiddleware)
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request, exc):
+        errors = [
+            {"field": err["loc"][-1] if err["loc"] else "body", "message": err["msg"]}
+            for err in exc.errors()
+        ]
+        return JSONResponse(status_code=422, content={"detail": "Validation error", "errors": errors})
 
-    register_exception_handlers(app)
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request, exc):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+    from app.api.router import api_router
     app.include_router(api_router)
 
     return app

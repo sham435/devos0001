@@ -17,9 +17,7 @@ COPY --chown=appuser:appuser alembic.ini .
 COPY --chown=appuser:appuser docker/entrypoint.sh ./docker/entrypoint.sh
 
 RUN chmod +x docker/entrypoint.sh
-
 USER appuser
-
 EXPOSE 8000
 
 CMD ["./docker/entrypoint.sh"]

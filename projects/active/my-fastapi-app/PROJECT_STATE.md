@@ -2,31 +2,30 @@
 Updated: 2026-05-23
 
 ## Completed
-- [x] Project initialized from DevOS template (create-project.sh)
+- [x] Project initialized from DevOS template
 - [x] ARCHITECTURE.md — stack, data flow, scaling plan
 - [x] DECISIONS.md — 7 architectural tradeoffs documented
 - [x] TASKS.md — 9 tasks defined
+- [x] **Task 1**: Core setup — pyproject.toml, config, main.py, Docker, compose, logging
 
 ## Working On
-Task 1: Core setup — pyproject.toml, config.py, main.py, Docker
+Task 2: DB layer — session.py, base.py, User/Item models, Alembic
 
 ## Blockers
 None
 
 ## Next Immediate Task
-Write pyproject.toml with exact versions, app/config.py with pydantic-settings, app/main.py with lifespan
+Write SQLAlchemy async engine + session, declarative Base with TimestampMixin, User + Item models, Alembic async env
 
 ## Important Files
-- `ARCHITECTURE.md` — Stack decisions, data flow, scaling
-- `DECISIONS.md` — Why FastAPI, UUIDs, bcrypt 12, refresh rotation
-- `TASKS.md` — 9 incremental tasks
+- `app/config.py` — pydantic-settings BaseSettings
+- `app/main.py` — FastAPI app factory with lifespan
+- `app/core/logging.py` — structlog JSON formatter
+- `docker-compose.yml` — app + postgres + redis + worker
 
 ## Last Work Session
-**DONE TODAY**: Architecture design phase. All decisions logged before first line of code.
+**DONE TODAY**: Task 1 fully scaffolded and committed. App boots with `uvicorn app.main:app`
 **CURRENT BUG**: None
-**NEXT TASK**: Task 1 — Core setup
-**START FILE**: `app/config.py`
+**NEXT TASK**: Task 2 — DB models + Alembic
+**START FILE**: `app/db/session.py`
 **ESTIMATED TIME**: 30min
-
-## Estimated Completion
-All 9 tasks: ~4hrs

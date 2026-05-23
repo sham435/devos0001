@@ -27,7 +27,7 @@ This repo is my:
 <!-- PROJECTS_START -->
 | Project | Current Focus | Next Task | Updated |
 | --- | --- | --- | --- |
-| [my-fastapi-app](projects/active/my-fastapi-app) | Ready to deploy. Run `uvicorn app.main:app --reload` after `alembic upgrade head | `docker compose up -d db redis && alembic upgrade head && uvicorn app.main:app - | 2026-05-23 |
+| [my-fastapi-app](projects/active/my-fastapi-app) | Task 1: Core setup — pyproject.toml, config.py, main.py, Docker | Write pyproject.toml with exact versions, app/config.py with pydantic-settings,  | 2026-05-23 |
 <!-- PROJECTS_END -->
 
 ### Recent Lessons Learned

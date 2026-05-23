@@ -2,34 +2,31 @@
 Updated: 2026-05-23
 
 ## Completed
-- [x] Full project scaffold created via DevOS
-- [x] 48 files: app core, models, schemas, services, routers, tasks, tests, infra
+- [x] Project initialized from DevOS template (create-project.sh)
+- [x] ARCHITECTURE.md — stack, data flow, scaling plan
+- [x] DECISIONS.md — 7 architectural tradeoffs documented
+- [x] TASKS.md — 9 tasks defined
 
 ## Working On
-Ready to deploy. Run `uvicorn app.main:app --reload` after `alembic upgrade head`
+Task 1: Core setup — pyproject.toml, config.py, main.py, Docker
 
 ## Blockers
-None — PostgreSQL and Redis needed for full runtime
+None
 
 ## Next Immediate Task
-`docker compose up -d db redis && alembic upgrade head && uvicorn app.main:app --reload`
+Write pyproject.toml with exact versions, app/config.py with pydantic-settings, app/main.py with lifespan
 
 ## Important Files
-- `app/main.py` — FastAPI app factory with lifespan
-- `app/config.py` — pydantic-settings BaseSettings
-- `app/core/security.py` — JWT create/decode, bcrypt
-- `app/core/cache.py` — Redis async wrapper with @cached decorator
-- `app/db/session.py` — Async engine + session factory
-- `app/api/v1/auth.py` — Register/login/refresh/logout
-- `app/services/auth_service.py` — Business logic for auth
-- `tests/test_auth.py` — 13 test cases covering all auth flows
+- `ARCHITECTURE.md` — Stack decisions, data flow, scaling
+- `DECISIONS.md` — Why FastAPI, UUIDs, bcrypt 12, refresh rotation
+- `TASKS.md` — 9 incremental tasks
 
 ## Last Work Session
-**DONE TODAY**: Scaffolded full enterprise-grade FastAPI + SQLAlchemy async + JWT auth + Celery + Redis caching + pytest test suite + Docker + CI
+**DONE TODAY**: Architecture design phase. All decisions logged before first line of code.
 **CURRENT BUG**: None
-**NEXT TASK**: Deploy and run tests
-**START FILE**: `app/main.py`
-**ESTIMATED TIME**: N/A
+**NEXT TASK**: Task 1 — Core setup
+**START FILE**: `app/config.py`
+**ESTIMATED TIME**: 30min
 
 ## Estimated Completion
-Deployable now
+All 9 tasks: ~4hrs

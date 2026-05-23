@@ -301,6 +301,77 @@ Task 10: Review auto-generated architecture and verify legacy code
   console.log(`  devos task ${projectName} 1`);
 }
 
+// ─── Opencode ────────────────────────────────────────────────────────────────
+async function runOpencode(project: string, prompt: string) {
+  const projectPath = join(DEVOS_HOME, "projects/active", project);
+  const opencodeBin = join(DEVOS_BIN, "opencode");
+
+  log("cyan", `\n>>> DevOS opencode: ${project}\n`);
+
+  if (!existsSync(projectPath)) {
+    log("red", `Project not found: ${projectPath}`);
+    process.exit(1);
+  }
+  if (!existsSync(opencodeBin)) {
+    log("red", `opencode binary not found at ${opencodeBin} — run bootstrap.sh`);
+    process.exit(1);
+  }
+
+  // 1. Pre-hook: doctor check
+  log("yellow", "  [1/4] Pre-hook: health check...");
+  try {
+    execSync(
+      `tsx "${join(DEVOS_HOME, "scripts/devos-doctor.ts")}" "${project}"`,
+      { stdio: "inherit", timeout: 15000, encoding: "utf-8" }
+    );
+    log("green", "  ✓ Doctor passed");
+  } catch {
+    log("red", "\n✗ DevOS Doctor FAILED — opencode execution aborted.");
+    process.exit(1);
+  }
+
+  // 2. Bundle context
+  log("yellow", "  [2/4] Bundling DevOS context...");
+  try {
+    execSync(
+      `bash "${join(DEVOS_HOME, "scripts/context/bundle.sh")}"`,
+      { env: { ...process.env, PROJECT_PATH: projectPath, DEVOS_HOME }, stdio: "pipe", timeout: 5000 }
+    );
+    log("green", `  ✓ Context bundled to /tmp/devos-context.md`);
+  } catch {
+    log("yellow", "  ⚠ Context bundle had issues, continuing without it");
+  }
+
+  // 3. Spawn opencode with bundled context
+  log("yellow", "  [3/4] Running opencode...");
+  const context = readFileSync("/tmp/devos-context.md", "utf-8");
+  const fullPrompt = `${context}\n\n## Current Instruction\n${prompt}`;
+
+  execSync(
+    `"${opencodeBin}" run --prompt "${fullPrompt.replace(/"/g, '\\"')}"`,
+    {
+      cwd: projectPath,
+      env: {
+        ...process.env,
+        OPENCODE_CONFIG_DIR: join(DEVOS_HOME, ".opencode"),
+        DEVOS_PROJECT: project,
+      },
+      stdio: "inherit",
+      timeout: 600000,
+    }
+  );
+  log("green", "  ✓ opencode completed");
+
+  // 4. Post-hook: state sync
+  log("yellow", "  [4/4] Post-hook: syncing state...");
+  execSync(
+    `bash "${join(DEVOS_HOME, ".devos/hooks/post-task.sh")}" "${project}" "${projectPath}"`,
+    { stdio: "pipe", timeout: 15000 }
+  );
+
+  log("green", "\n✓ Task complete. State synced to devos-state branch.");
+}
+
 // ─── Help ────────────────────────────────────────────────────────────────────
 function help() {
   console.log(`Usage: devos <command> [options]
@@ -309,12 +380,16 @@ Commands:
   doctor [project]    Health check DevOS + opencode setup
   migrate <path>      Convert legacy project to DevOS structure
                        --name <name>  Override project name
+  opencode <project>  Run opencode with full DevOS pipeline (doctor → context → opencode → sync)
+    <prompt>           Instruction for opencode
 
 Examples:
   devos doctor
   devos doctor my-fastapi-app
   devos migrate /path/to/legacy-project
   devos migrate ../old-app --name my-new-app
+  devos opencode my-fastapi-app "Add pagination to /items endpoint"
+  devos opencode my-fastapi-app "Fix the bug in app/api/v1/items.py from BUGS.md"
 `);
 }
 
@@ -326,6 +401,10 @@ switch (cmd) {
   case "migrate":
     if (!args[0]) { log("red", "Usage: devos migrate <path> [--name <name>]"); process.exit(1); }
     migrate(args[0]).catch(e => { log("red", `\n✗ Migration failed: ${e.message}`); process.exit(1); });
+    break;
+  case "opencode":
+    if (!args[0] || !args[1]) { log("red", "Usage: devos opencode <project> \"<prompt>\""); process.exit(1); }
+    runOpencode(args[0], args.slice(1).join(" ")).catch(e => { log("red", `\n✗ opencode failed: ${e.message}`); process.exit(1); });
     break;
   default:
     help();

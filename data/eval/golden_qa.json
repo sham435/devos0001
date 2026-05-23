@@ -1,0 +1,122 @@
+[
+  {
+    "question": "What is the SLA for P1 tickets?",
+    "expected_answer_contains": ["4 hours", "response time"],
+    "expected_sources": ["sla.pdf"],
+    "tags": ["sla", "support"]
+  },
+  {
+    "question": "How do I reset my password?",
+    "expected_answer_contains": ["settings", "password"],
+    "expected_sources": ["user-guide.pdf"],
+    "tags": ["auth", "onboarding"]
+  },
+  {
+    "question": "What are the supported file formats for import?",
+    "expected_answer_contains": ["CSV", "JSON"],
+    "expected_sources": ["import-guide.pdf"],
+    "tags": ["import", "data"]
+  },
+  {
+    "question": "How do I invite a team member?",
+    "expected_answer_contains": ["invite", "email"],
+    "expected_sources": ["team-guide.pdf"],
+    "tags": ["team", "admin"]
+  },
+  {
+    "question": "What happens when my storage quota is exceeded?",
+    "expected_answer_contains": ["upload", "blocked"],
+    "expected_sources": ["billing.pdf"],
+    "tags": ["billing", "storage"]
+  },
+  {
+    "question": "Can I export my data?",
+    "expected_answer_contains": ["export", "download"],
+    "expected_sources": ["data-guide.pdf"],
+    "tags": ["data", "export"]
+  },
+  {
+    "question": "How do I set up two-factor authentication?",
+    "expected_answer_contains": ["2FA", "authenticator"],
+    "expected_sources": ["security-guide.pdf"],
+    "tags": ["auth", "security"]
+  },
+  {
+    "question": "What web browsers are supported?",
+    "expected_answer_contains": ["Chrome", "Firefox", "Safari"],
+    "expected_sources": ["compat-guide.pdf"],
+    "tags": ["compatibility", "setup"]
+  },
+  {
+    "question": "How does billing work?",
+    "expected_answer_contains": ["monthly", "per seat"],
+    "expected_sources": ["billing.pdf"],
+    "tags": ["billing", "pricing"]
+  },
+  {
+    "question": "How do I delete my account?",
+    "expected_answer_contains": ["settings", "delete"],
+    "expected_sources": ["account-guide.pdf"],
+    "tags": ["account", "admin"]
+  },
+  {
+    "question": "What is the maximum file upload size?",
+    "expected_answer_contains": ["25MB", "limit"],
+    "expected_sources": ["import-guide.pdf"],
+    "tags": ["import", "limits"]
+  },
+  {
+    "question": "How do I create an API key?",
+    "expected_answer_contains": ["API", "token"],
+    "expected_sources": ["api-guide.pdf"],
+    "tags": ["api", "developer"]
+  },
+  {
+    "question": "Can I use custom domains?",
+    "expected_answer_contains": ["domain", "DNS"],
+    "expected_sources": ["deploy-guide.pdf"],
+    "tags": ["deployment", "customization"]
+  },
+  {
+    "question": "How do I view audit logs?",
+    "expected_answer_contains": ["audit", "log"],
+    "expected_sources": ["security-guide.pdf"],
+    "tags": ["security", "compliance"]
+  },
+  {
+    "question": "What integrations are supported?",
+    "expected_answer_contains": ["Slack", "webhook"],
+    "expected_sources": ["integrations-guide.pdf"],
+    "tags": ["integrations", "api"]
+  },
+  {
+    "question": "How long does it take to process a refund?",
+    "expected_answer_contains": ["5", "business", "days"],
+    "expected_sources": ["billing.pdf"],
+    "tags": ["billing", "support"]
+  },
+  {
+    "question": "Can I schedule reports?",
+    "expected_answer_contains": ["schedule", "automated"],
+    "expected_sources": ["analytics-guide.pdf"],
+    "tags": ["analytics", "automation"]
+  },
+  {
+    "question": "How do I change my notification preferences?",
+    "expected_answer_contains": ["notifications", "settings"],
+    "expected_sources": ["user-guide.pdf"],
+    "tags": ["notifications", "settings"]
+  },
+  {
+    "question": "What happens when my trial expires?",
+    "expected_answer_contains": ["trial", "expire", "downgrade"],
+    "expected_sources": ["billing.pdf"],
+    "tags": ["billing", "trial"]
+  },
+  {
+    "question": "How do I report a bug?",
+    "expected_answer_contains": ["support", "ticket"],
+    "expected_sources": ["support-guide.pdf"],
+    "tags": ["support", "bug"]
+  }
+]
